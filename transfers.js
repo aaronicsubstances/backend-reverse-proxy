@@ -234,12 +234,6 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
     remoteWorker.res.json(requestMetadata);
     pendingTransfer.state++;
 
-    // for GET and HEAD requests, it is expected that remote worker
-    // will not come back to pull their request bodies, so just
-    // go ahead and mark request as completely sent (by state = 2).
-    if (["GET", "HEAD"].includes(pendingTransfer.req.method)) {
-        pendingTransfer.state++;
-    }
     _endRemoteWork(backendId, remoteWorker);
 }
 
