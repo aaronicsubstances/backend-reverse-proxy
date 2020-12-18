@@ -71,10 +71,13 @@ function beginRequestTransfer(req, res, backendId) {
         _beginRemoteWorkOnPendingTransfer(backendId, pendingTransferWork, remoteWorker);
     }
     else {
+        logger.debug(`[${remoteWorker.clientIpAddress}] remote worker waiting for pending transfer on ${backendId}`);
+
         // wait for some time.
         remoteWorker.timeout = setTimeout(() => {
             // send back response without an id to indicate
             // that no pending transfer was found.
+            logger.debug(`[${remoteWorker.clientIpAddress}] remote worker exiting without any pending transfer on ${backendId}`);
             remoteWorker.res.json({});
             _endRemoteWork(backendId, remoteWorker);
         }, utils.getPollWaitTimeMillis());
@@ -97,6 +100,8 @@ function endRequestTransfer(req, res, backendId, transferId) {
             `Pending transfer with id ${transferId} is not expecting a request body transfer`);
         return;
     }
+
+    clearTimeout(pendingTransfer.initialTimeout);
 
     const clientIpAddress = utils.getClientIpAddress(req);    
     logger.info(`[${clientIpAddress}] ${pendingTransfer.id}.`,
@@ -233,6 +238,15 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
     };
     remoteWorker.res.json(requestMetadata);
     pendingTransfer.state++;
+
+    // just in case remote worker is disconnected without us knowing, add a timeout and revert
+    // state of pendingTransfer to make it eligible for pick up.
+    pendingTransfer.initialTimeout = setTimeout(() => {
+        const waitTime = new Date().getTime() - pendingTransfer.startDate.getTime();
+        logger.warn(`transfer of request headers for ${pendingTransfer.id} have not been confirmed`,
+            `after ${waitTime} ms. Reverting to scheduled state.`);
+        pendingTransfer.state = 0;
+    }, utils.getPickUpConfirmationTimeoutMillis());
 
     _endRemoteWork(backendId, remoteWorker);
 }

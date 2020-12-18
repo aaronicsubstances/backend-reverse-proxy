@@ -42,6 +42,10 @@ function getPollWaitTimeMillis() {
     return parseInt(process.env.POLL_WAIT_TIME_MILLIS) || 10000;
 }
 
+function getPickUpConfirmationTimeoutMillis() {
+    return parseInt(process.env.PICK_UP_CONFIRMATION_TIMEOUT) || 1000;
+}
+
 function arrayRemove(arr, value) {
     for (let i = 0; i < arr.length; i++) {
         if ( arr[i] === value) {
@@ -66,6 +70,7 @@ module.exports = {
     parseMainUrl,
     getRequestTimeoutMillis,
     getPollWaitTimeMillis,
+    getPickUpConfirmationTimeoutMillis,
     arrayRemove,
     getClientIpAddress
 };
