@@ -1,3 +1,4 @@
+const { json } = require('body-parser');
 const bodyParser = require('body-parser')
 const dotenv = require('dotenv');
 const express = require("express");
@@ -11,8 +12,6 @@ const app = express();
 const port = process.env.PORT || 5100;
 
 app.use(express.static(__dirname + "/public"));
-
-app.use(bodyParser.json());
 
 app.use(function(req, res, next) {
     // use req.originalUrl instead of req.path to include query string
@@ -34,7 +33,10 @@ app.get("/req-b/:backendId/:transferId", function(req, res) {
     transfers.endRequestTransfer(req, res, backendId, req.params.transferId);
 });
 
-app.post("/res-h/:backendId", function(req, res) {
+// create application/json parser only for parsing reponse headers
+// to avoid body parser tampering with request bodies to /main/*
+const jsonParser = bodyParser.json();
+app.post("/res-h/:backendId", jsonParser, function(req, res) {
     const backendId = utils.normalizeUuid(req.params.backendId);
     transfers.beginReceiveResponse(req, res, backendId);
 });
