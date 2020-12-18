@@ -17,26 +17,6 @@ function normalizeUuid(str) {
     return id;
 }
 
-function parsePositiveInt(str) {
-    let num = _parseInt(str);
-    if (num <= 0) {
-        throw new Error(`invalid positive integer: ${str}`);
-    }
-    return num;
-}
-
-/*
- * Return 0 if invalid.
- */
-
-function _parseInt(str) {
-    let num = parseInt(str);
-    if (Number.isNaN(num)) {
-        return 0;
-    }
-    return num;
-}
-
 function parseMainUrl(url) {
     const mainSegEndIdx = "/main/".length;
     let thirdSlashIdx = url.indexOf('/', mainSegEndIdx);
@@ -55,19 +35,11 @@ function parseMainUrl(url) {
 }
 
 function getRequestTimeoutMillis() {
-    const configValue = _parseInt(process.env.REQUEST_TIMEOUT_MILLIS);
-    if (configValue > 0) {
-        return configValue;
-    }
-    return 5000;
+    return parseInt(process.env.REQUEST_TIMEOUT_MILLIS) || 5000;
 }
 
 function getPollWaitTimeMillis() {
-    const configValue = _parseInt(process.env.POLL_WAIT_TIME_MILLIS);
-    if (configValue > 0) {
-        return configValue;
-    }
-    return 10000;
+    return parseInt(process.env.POLL_WAIT_TIME_MILLIS) || 10000;
 }
 
 function arrayRemove(arr, value) {
@@ -91,7 +63,6 @@ function getClientIpAddress(req) {
 
 module.exports = {
     normalizeUuid,
-    parsePositiveInt,
     parseMainUrl,
     getRequestTimeoutMillis,
     getPollWaitTimeMillis,
