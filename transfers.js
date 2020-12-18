@@ -37,7 +37,7 @@ function scheduleTransfer(req, res, backendId, targetUrl) {
         _endPendingTransfer(backendId, pendingTransfer, { timeout: true });
     }, utils.getRequestTimeoutMillis());
     
-    logger.info(`[${pendingTransfer.clientIpAddress}] ${pendingTransfer.id}. ${req.method} "${targetUrl}" - scheduled`);
+    logger.info(`[${pendingTransfer.clientIpAddress}] ${pendingTransfer.id}. ${req.method} ${backendId}${targetUrl} - scheduled`);
 
     // see if there's any remote worker to work on pendingTransfer immediately.
     if (backendTransfers.remoteWorkers.length) {
@@ -104,8 +104,8 @@ function endRequestTransfer(req, res, backendId, transferId) {
     clearTimeout(pendingTransfer.initialTimeout);
 
     const clientIpAddress = utils.getClientIpAddress(req);    
-    logger.info(`[${clientIpAddress}] ${pendingTransfer.id}.`,
-        `${pendingTransfer.req.method} "${pendingTransfer.targetUrl}" -`,
+    logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+        `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `request body being transferred to remote worker`);
 
     // transfer request body to response
@@ -134,8 +134,8 @@ function beginReceiveResponse(req, res, backendId) {
     }
 
     const clientIpAddress = utils.getClientIpAddress(req);
-    logger.info(`[${clientIpAddress}] ${pendingTransfer.id}.`,
-        `${pendingTransfer.req.method} "${pendingTransfer.targetUrl}" -`,
+    logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+        `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `response headers being received from remote worker`);
 
     // transfer response headers from remote worker
@@ -182,8 +182,8 @@ function endReceiveResponse(req, res, backendId, transferId) {
     }
 
     const clientIpAddress = utils.getClientIpAddress(req);    
-    logger.info(`[${clientIpAddress}] ${pendingTransfer.id}.`,
-        `${pendingTransfer.req.method} "${pendingTransfer.targetUrl}" -`,
+    logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+        `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `response body being received from remote worker`);
 
     // receive response body from remote worker
@@ -225,7 +225,7 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
     remoteWorker.timeout = null;
     
     logger.info(`[${remoteWorker.clientIpAddress}] ${pendingTransfer.id}.`,
-        `${pendingTransfer.req.method} "${pendingTransfer.targetUrl}" -`,
+        `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `request headers being transferred to remote worker`);
 
     const requestMetadata = {
@@ -310,7 +310,7 @@ function _endPendingTransfer(backendId, pendingTransfer, failureReason) {
 
     // present summary of what happened with transfer.
     let summary = `[${pendingTransfer.clientIpAddress}] ${pendingTransfer.id}. `;
-    summary += `${pendingTransfer.req.method} "${pendingTransfer.targetUrl}" - completed; `;
+    summary += `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} - completed; `;
     if (failureReason) {
         if (failureReason.timeout) {
             summary += `timed out after`;
