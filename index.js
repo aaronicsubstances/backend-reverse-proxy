@@ -45,6 +45,11 @@ app.post("/res-b/:backendId/:transferId", function(req, res) {
     const backendId = utils.normalizeUuid(req.params.backendId);
     transfers.endReceiveResponse(req, res, backendId, req.params.transferId);
 });
+
+app.post("/err/:backendId/:transferId", jsonParser, function(req, res) {
+    const backendId = utils.normalizeUuid(req.params.backendId);
+    transfers.failTransfer(req, res, backendId, req.params.transferId);
+});
   
 app.listen(port, () => {
     logger.info("http server listening on", port);

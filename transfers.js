@@ -181,7 +181,7 @@ function endReceiveResponse(req, res, backendId, transferId) {
         return;
     }
 
-    const clientIpAddress = utils.getClientIpAddress(req);    
+    const clientIpAddress = utils.getClientIpAddress(req);
     logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `response body being received from remote worker`);
@@ -211,7 +211,27 @@ function endReceiveResponse(req, res, backendId, transferId) {
     pendingTransfer.timeout = null;
 }
 
-function _identifyAnyPendingTransferWork(backendTransfers) {
+function failTransfer(req, res, backendId, transferId) {
+    // end response asap
+    res.end();
+
+    if (!allPendingTransfers.has(backendId)) {
+        return;
+    }
+    const backendTransfers = allPendingTransfers.get(backendId);
+    const pendingTransfer = backendTransfers.queue.find(x => x.id === transferId);
+    if (!pendingTransfer) {
+        return;
+    }
+
+    const clientIpAddress = utils.getClientIpAddress(req);
+    logger.warn(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+        `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
+        `transfer failure notification - `, req.body.error || '');
+    _endPendingTransfer(backendId, pendingTransfer, req.body);
+}
+
+function _identifyAnyPendingTransferWork(backendTransfers) { 
     for (pendingTransfer of backendTransfers.queue) {
         if (pendingTransfer.state === 0) {
             return pendingTransfer;
@@ -291,20 +311,26 @@ function _endPendingTransfer(backendId, pendingTransfer, failureReason) {
     // send back an error response for failures.
     if (failureReason) {
         let errorStatus = 500;
-        let errorMessage;
-        if (failureReason.error) {
-            errorMessage = failureReason.error.toString();
-        }
-        else {
+        if (failureReason.timeout || failureReason.remoteTimeout) {
             errorStatus = 504;
-            errorMessage = "No remote worker showed up to process request";
+        }
+        if (!failureReason.error) {
+            if (failureReason.timeout) {
+                failureReason.error = "No remote worker showed up to process request";
+            }
+            else if (failureReason.remoteTimeout) {
+                failureReason.error = "Request timed out at local forward proxy during processing";
+            }
+            else {
+                failureReason.error = "Unspecified error";
+            }
         }
         if (pendingTransfer.res.headersSent) {
-            pendingTransfer.res.end(errorMessage);
+            pendingTransfer.res.end(failureReason.error.toString());
         }
         else {
             pendingTransfer.res.status(errorStatus);
-            pendingTransfer.res.send(errorMessage);
+            pendingTransfer.res.send(failureReason.error.toString());
         }
     }
 
@@ -314,6 +340,9 @@ function _endPendingTransfer(backendId, pendingTransfer, failureReason) {
     if (failureReason) {
         if (failureReason.timeout) {
             summary += `timed out after`;
+        }
+        else if (failureReason.remoteTimeout) {
+            summary += `timed out at local forward proxy after`;
         }
         else {
             summary += `encountered error after`;
@@ -347,5 +376,6 @@ module.exports = {
     beginRequestTransfer,
     endRequestTransfer,
     beginReceiveResponse,
-    endReceiveResponse
+    endReceiveResponse,
+    failTransfer
 };
