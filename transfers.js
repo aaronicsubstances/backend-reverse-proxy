@@ -243,7 +243,7 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
     // state of pendingTransfer to make it eligible for pick up.
     pendingTransfer.initialTimeout = setTimeout(() => {
         const waitTime = new Date().getTime() - pendingTransfer.startDate.getTime();
-        logger.warn(`transfer of request headers for ${pendingTransfer.id} have not been confirmed`,
+        logger.warn(`transfer of request headers for ${pendingTransfer.id} not confirmed`,
             `after ${waitTime} ms. Reverting to scheduled state.`);
         pendingTransfer.state = 0;
     }, utils.getPickUpConfirmationTimeoutMillis());

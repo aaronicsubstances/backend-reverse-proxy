@@ -35,15 +35,15 @@ function parseMainUrl(url) {
 }
 
 function getRequestTimeoutMillis() {
-    return parseInt(process.env.REQUEST_TIMEOUT_MILLIS) || 5000;
+    return parseInt(process.env.REQUEST_TIMEOUT_MILLIS) || 20000;
 }
 
 function getPollWaitTimeMillis() {
-    return parseInt(process.env.POLL_WAIT_TIME_MILLIS) || 10000;
+    return parseInt(process.env.POLL_WAIT_TIME_MILLIS) || 5000;
 }
 
 function getPickUpConfirmationTimeoutMillis() {
-    return parseInt(process.env.PICK_UP_CONFIRMATION_TIMEOUT) || 1000;
+    return parseInt(process.env.PICK_UP_CONFIRMATION_TIMEOUT) || 3000;
 }
 
 function arrayRemove(arr, value) {
