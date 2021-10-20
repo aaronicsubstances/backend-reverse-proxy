@@ -45,7 +45,7 @@ function scheduleTransfer(req, res, backendId, targetUrl) {
     }
 }
 
-function beginRequestTransfer(req, res, backendId) {
+function beginRequestTransfer(remoteWorkerAddress, backendId, resCb) {
     let backendTransfers;
     if (allPendingTransfers.has(backendId)) {
         backendTransfers = allPendingTransfers.get(backendId);
@@ -59,9 +59,9 @@ function beginRequestTransfer(req, res, backendId) {
         allPendingTransfers.set(backendId, backendTransfers);
     }
     const remoteWorker = {
-        res,
+        resCb,
         timeout: null,
-        clientIpAddress: utils.getClientIpAddress(req)
+        address: remoteWorkerAddress
     };
     backendTransfers.remoteWorkers.push(remoteWorker);
 
@@ -71,70 +71,68 @@ function beginRequestTransfer(req, res, backendId) {
         _beginRemoteWorkOnPendingTransfer(backendId, pendingTransferWork, remoteWorker);
     }
     else {
-        logger.debug(`[${remoteWorker.clientIpAddress}] remote worker waiting for pending transfer on ${backendId}`);
+        logger.debug(`[${remoteWorker.address}] remote worker waiting for pending transfer on ${backendId}`);
 
         // wait for some time.
         remoteWorker.timeout = setTimeout(() => {
             // send back response without an id to indicate
             // that no pending transfer was found.
-            logger.debug(`[${remoteWorker.clientIpAddress}] remote worker exiting without any pending transfer on ${backendId}`);
-            remoteWorker.res.json({});
+            logger.debug(`[${remoteWorker.address}] remote worker exiting without any pending transfer on ${backendId}`);
+            remoteWorker.resCb(null, {});
             _endRemoteWork(backendId, remoteWorker);
         }, utils.getPollWaitTimeMillis());
     }
 }
 
-function endRequestTransfer(req, res, backendId, transferId) {
+function endRequestTransfer(remoteWorkerAddress, backendId, transferId, resCb) {
     if (!allPendingTransfers.has(backendId)) {
-        _logAndIssueErrorResponse(req, res, `No pending transfer found from backend ${backendId}`);
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb, `No pending transfer found from backend ${backendId}`);
         return;
     }
     const backendTransfers = allPendingTransfers.get(backendId);
     const pendingTransfer = backendTransfers.queue.find(x => x.id === transferId);
     if (!pendingTransfer) {
-        _logAndIssueErrorResponse(req, res, `No pending transfer found with id ${transferId}`);
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb, `No pending transfer found with id ${transferId}`);
         return;
     }
     if (pendingTransfer.state !== 1) {
-        _logAndIssueErrorResponse(req, res, 
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb, 
             `Pending transfer with id ${transferId} is not expecting a request body transfer`);
         return;
     }
 
     clearTimeout(pendingTransfer.initialTimeout);
 
-    const clientIpAddress = utils.getClientIpAddress(req);    
-    logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+    logger.debug(`[${remoteWorkerAddress}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `request body being transferred to remote worker`);
 
     // transfer request body to response
-    res.header("content-type", "application/octet-stream");
-    pendingTransfer.req.pipe(res);
+    resCb(null, pendingTransfer.req);
     pendingTransfer.state++;
 }
 
-function beginReceiveResponse(req, res, backendId) {
-    const responsePart = req.body;
+function beginReceiveResponse(remoteWorkerAddress, backendId, responsePart, resCb) {
     const transferId = responsePart.id;
     if (!allPendingTransfers.has(backendId)) {
-        _logAndIssueErrorResponse(req, res, `No pending transfer found from backend ${backendId}`);
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb,
+            `No pending transfer found from backend ${backendId}`);
         return;
     }
     const backendTransfers = allPendingTransfers.get(backendId);
     const pendingTransfer = backendTransfers.queue.find(x => x.id === transferId);
     if (!pendingTransfer) {
-        _logAndIssueErrorResponse(req, res, `No pending transfer found with id ${transferId}`);
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb,
+            `No pending transfer found with id ${transferId}`);
         return;
     }
     if (pendingTransfer.state !== 2) {
-        _logAndIssueErrorResponse(req, res, 
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb, 
             `Pending transfer with id ${transferId} is not expecting to receive response headers`);
         return;
     }
 
-    const clientIpAddress = utils.getClientIpAddress(req);
-    logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+    logger.debug(`[${remoteWorkerAddress}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `response headers being received from remote worker`);
 
@@ -161,47 +159,48 @@ function beginReceiveResponse(req, res, backendId) {
     pendingTransfer.state++;
 
     // end request made by remote worker.
-    res.sendStatus(204);
+    resCb();
 }
 
-function endReceiveResponse(req, res, backendId, transferId) {
+function endReceiveResponse(remoteWorkerAddress, backendId, transferId, finalResponsePart, resCb) {
     if (!allPendingTransfers.has(backendId)) {
-        _logAndIssueErrorResponse(req, res, `No pending transfer found from backend ${backendId}`);
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb,
+            `No pending transfer found from backend ${backendId}`);
         return;
     }
     const backendTransfers = allPendingTransfers.get(backendId);
     const pendingTransfer = backendTransfers.queue.find(x => x.id === transferId);
     if (!pendingTransfer) {
-        _logAndIssueErrorResponse(req, res, `No pending transfer found with id ${transferId}`);
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb,
+            `No pending transfer found with id ${transferId}`);
         return;
     }
     if (pendingTransfer.state !== 3) {
-        _logAndIssueErrorResponse(req, res, 
+        _logAndIssueErrorResponse(remoteWorkerAddress, resCb, 
             `Pending transfer with id ${transferId} is not expecting to receive response body`);
         return;
     }
 
-    const clientIpAddress = utils.getClientIpAddress(req);
-    logger.debug(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+    logger.debug(`[${remoteWorkerAddress}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `response body being received from remote worker`);
 
     // receive response body from remote worker
-    req.pipe(pendingTransfer.res);
+    finalResponsePart.pipe(pendingTransfer.res);
     pendingTransfer.state++;
 
-    req.once("end", () => {
-        res.sendStatus(204);
+    finalResponsePart.once("end", () => {
+        resCb();
         _endPendingTransfer(backendId, pendingTransfer);
     });
 
-    req.on("data", (chunk) => {
+    finalResponsePart.on("data", (chunk) => {
         pendingTransfer.bytesWritten += chunk.length;
     });
 
-    req.once("error", (error) => {
+    finalResponsePart.once("error", (error) => {
         logger.error(`An error occurred while sending response body for ${pendingTransfer.id}`, error);
-        res.sendStatus(204); // still send a success status to remote worker.
+        resCb(); // still send a success status to remote worker.
         _endPendingTransfer(backendId, pendingTransfer, { error });
     });
 
@@ -211,10 +210,7 @@ function endReceiveResponse(req, res, backendId, transferId) {
     pendingTransfer.timeout = null;
 }
 
-function failTransfer(req, res, backendId, transferId) {
-    // end response asap
-    res.end();
-
+function failTransfer(remoteWorkerAddress, backendId, transferId, errorResponsePart) {
     if (!allPendingTransfers.has(backendId)) {
         return;
     }
@@ -224,11 +220,10 @@ function failTransfer(req, res, backendId, transferId) {
         return;
     }
 
-    const clientIpAddress = utils.getClientIpAddress(req);
-    logger.warn(`[${clientIpAddress}] ${pendingTransfer.id}.`,
+    logger.warn(`[${remoteWorkerAddress}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `transfer failure notification - `, req.body.error || '');
-    _endPendingTransfer(backendId, pendingTransfer, req.body);
+    _endPendingTransfer(backendId, pendingTransfer, errorResponsePart);
 }
 
 function _identifyAnyPendingTransferWork(backendTransfers) { 
@@ -244,7 +239,7 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
     clearTimeout(remoteWorker.timeout);
     remoteWorker.timeout = null;
     
-    logger.info(`[${remoteWorker.clientIpAddress}] ${pendingTransfer.id}.`,
+    logger.info(`[${remoteWorker.address}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
         `request headers being transferred to remote worker`);
 
@@ -256,7 +251,7 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
         headers: pendingTransfer.req.rawHeaders,
         clientIpAddress: pendingTransfer.clientIpAddress
     };
-    remoteWorker.res.json(requestMetadata);
+    remoteWorker.resCb(null, requestMetadata);
     pendingTransfer.state++;
 
     // just in case remote worker is disconnected without us knowing, add a timeout and revert
@@ -284,10 +279,9 @@ function _endRemoteWork(backendId, remoteWorker) {
     _trimAllPendingTransfers(backendId);
 }
 
-function _logAndIssueErrorResponse(req, res, msg) {
-    const clientIpAddress = utils.getClientIpAddress(req);
-    logger.warn(`[${clientIpAddress}]`, msg);
-    res.status(400).send(msg);
+function _logAndIssueErrorResponse(remoteWorkerAddress, resCb, msg) {
+    logger.warn(`[${remoteWorkerAddress}]`, msg);
+    resCb(msg);
 }
 
 function _endPendingTransfer(backendId, pendingTransfer, failureReason) {
