@@ -35,7 +35,7 @@ app.get("/req-b/:backendId/:transferId", function(req, res) {
 
 // create application/json parser only for parsing reponse headers
 // to avoid body parser tampering with request bodies to /main/*
-const jsonParser = bodyParser.json();
+const jsonParser = express.json();
 app.post("/res-h/:backendId", jsonParser, function(req, res) {
     const backendId = utils.normalizeUuid(req.params.backendId);
     transfers.beginReceiveResponse(req, res, backendId);
