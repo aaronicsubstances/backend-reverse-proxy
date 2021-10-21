@@ -20,6 +20,9 @@ function scheduleTransfer(req, res, backendId, targetUrl) {
         clientIpAddress,
         state: 0
     };
+    if (lastTransferId === 1 << 30) {
+        lastTransferId = 0;
+    }
     let backendTransfers;
     if (allPendingTransfers.has(backendId)) {
         backendTransfers = allPendingTransfers.get(backendId);
@@ -45,7 +48,8 @@ function scheduleTransfer(req, res, backendId, targetUrl) {
     }
 }
 
-function beginRequestTransfer(remoteWorkerAddress, backendId, resCb) {
+function beginRequestTransfer(remoteWorkerAddress, backendId, resCb,
+        requestErrCb) {
     let backendTransfers;
     if (allPendingTransfers.has(backendId)) {
         backendTransfers = allPendingTransfers.get(backendId);
@@ -60,6 +64,7 @@ function beginRequestTransfer(remoteWorkerAddress, backendId, resCb) {
     }
     const remoteWorker = {
         resCb,
+        requestErrCb,
         timeout: null,
         address: remoteWorkerAddress
     };
@@ -238,6 +243,7 @@ function _identifyAnyPendingTransferWork(backendTransfers) {
 function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWorker) {
     clearTimeout(remoteWorker.timeout);
     remoteWorker.timeout = null;
+    pendingTransfer.requestErrCb = remoteWorker.requestErrCb;
     
     logger.info(`[${remoteWorker.address}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
@@ -325,6 +331,10 @@ function _endPendingTransfer(backendId, pendingTransfer, failureReason) {
         else {
             pendingTransfer.res.status(errorStatus);
             pendingTransfer.res.send(failureReason.error.toString());
+        }
+        if (pendingTransfer.requestErrCb) {
+            pendingTransfer.requestErrCb(pendingTransfer.backendId, 
+                pendingTransfer.id, failureReason.error);
         }
     }
 

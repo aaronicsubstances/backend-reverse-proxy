@@ -9,6 +9,8 @@ const utils = require("./utils");
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
+const io = require('socket.io')(server);
+const ss = require('socket.io-stream');
 
 app.use(express.static(__dirname + "/public"));
 
@@ -92,6 +94,54 @@ app.post("/err/:backendId/:transferId", jsonParser, function(req, res) {
     res.end();
 
     transfers.failTransfer(remoteWorkerAddress, backendId, transferId, transferError);
+});
+
+io.on('connection', (client) => {
+    const remoteWorkerAddress = client.request.connection.remoteAddress;
+    logger.warn(`[${remoteWorkerAddress}]`, "connected");
+    client.on("disconnect", (reason) => {
+        logger.warn(`[${remoteWorkerAddress}]`, "disconnected due to", reason);
+    });
+    client.on("req-h", req => {
+        const backendId = utils.normalizeUuid(req.backendId);
+        transfers.beginRequestTransfer(remoteWorkerAddress, backendId,
+            (errToBeIgnored, headers) => {
+                client.emit("req-h", headers);
+            },
+            (backendId, id, error) => {
+                client.emit("transfer-err", { backendId, id, error });
+            });
+    });
+    client.on('req-b', (req) => {
+        const backendId = utils.normalizeUuid(req.backendId);
+        transfers.endRequestTransfer(remoteWorkerAddress, backendId, req.id,
+            (err, body) => {
+                const stream = ss.createStream();
+                ss(client).emit('req-b', stream, { id: req.id, error: err });
+                if (body) {
+                    body.pipe(stream);
+                }
+            });
+    });
+    client.on("res-h", req => {
+        const backendId = utils.normalizeUuid(req.backendId);
+        transfers.beginReceiveResponse(remoteWorkerAddress, backendId, req,
+            (err) => {
+                client.emit("res-h", { id: req.id, error: err });
+            });
+    });
+    ss(client).on('res-b', function(stream, req) {
+        const backendId = utils.normalizeUuid(req.backendId);
+        transfers.endReceiveResponse(remoteWorkerAddress, backendId, req.id, stream,
+            (err) => {
+                client.emit("res-b", { id: req.id, error: err });
+            });
+    });
+    client.on("transfer-err", req => {
+        const backendId = utils.normalizeUuid(req.backendId);
+
+        transfers.failTransfer(remoteWorkerAddress, backendId, req.id, req);
+    });
 });
 
 const port = process.env.PORT || 5100;
