@@ -1,5 +1,6 @@
 const dotenv = require('dotenv');
 const express = require("express");
+const http = require("http");
 
 const logger = require("./logger");
 const transfers = require("./transfers");
@@ -7,7 +8,7 @@ const utils = require("./utils");
 
 dotenv.config();
 const app = express();
-const port = process.env.PORT || 5100;
+const server = http.createServer(app);
 
 app.use(express.static(__dirname + "/public"));
 
@@ -92,7 +93,8 @@ app.post("/err/:backendId/:transferId", jsonParser, function(req, res) {
 
     transfers.failTransfer(remoteWorkerAddress, backendId, transferId, transferError);
 });
-  
-app.listen(port, () => {
+
+const port = process.env.PORT || 5100;
+server.listen(port, () => {
     logger.info("http server listening on", port);
 });

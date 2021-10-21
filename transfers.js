@@ -222,7 +222,7 @@ function failTransfer(remoteWorkerAddress, backendId, transferId, errorResponseP
 
     logger.warn(`[${remoteWorkerAddress}] ${pendingTransfer.id}.`,
         `${pendingTransfer.req.method} ${backendId}${pendingTransfer.targetUrl} -`,
-        `transfer failure notification - `, req.body.error || '');
+        `transfer failure notification - `, errorResponsePart.error || '');
     _endPendingTransfer(backendId, pendingTransfer, errorResponsePart);
 }
 
