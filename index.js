@@ -16,7 +16,7 @@ app.use(express.static(__dirname + "/public"));
 
 app.use(function(req, res, next) {
     // use req.originalUrl instead of req.path to include query string
-    if (!req.originalUrl.startsWith("/main/")) {
+    if (!req.originalUrl.startsWith("/main-")) {
         next();
         return;
     }

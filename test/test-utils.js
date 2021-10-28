@@ -24,11 +24,11 @@ describe('utils', function(){
     describe('#parseMainUrl', function() {
         it('should parse valid main url correctly', function() {
             const data = [
-                ["/main/CCEBE604-9E4E-4185-9A93-EDDD247001B0/", 
+                ["/main-CCEBE604-9E4E-4185-9A93-EDDD247001B0/", 
                     ["ccebe604-9e4e-4185-9a93-eddd247001b0", "/"]], 
-                ["/main/ccebe604-9e4e-4185-9a93-eddd247001b0", 
+                ["/main-ccebe604-9e4e-4185-9a93-eddd247001b0", 
                     ["ccebe604-9e4e-4185-9a93-eddd247001b0", ""]], 
-                ["/main/ccebe604-9e4e-4185-9a93-eddd247001b0?p=0", 
+                ["/main-ccebe604-9e4e-4185-9a93-eddd247001b0?p=0", 
                     ["ccebe604-9e4e-4185-9a93-eddd247001b0", "?p=0"]]
             ];
             for (const testData of data) {

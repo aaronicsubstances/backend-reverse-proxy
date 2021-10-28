@@ -18,7 +18,10 @@ function normalizeUuid(str) {
 }
 
 function parseMainUrl(url) {
-    const mainSegEndIdx = "/main/".length;
+    if (!url.startsWith("/main-")) {
+        throw new Error("url doesn't start with 'main-'");
+    }
+    const mainSegEndIdx = "/main-".length;
     let thirdSlashIdx = url.indexOf('/', mainSegEndIdx);
     if (thirdSlashIdx === -1) {
         thirdSlashIdx = url.indexOf('?', mainSegEndIdx);
