@@ -1,6 +1,6 @@
 const assert = require('assert').strict;
 
-const utils = require("../utils");
+const utils = require("../src/utils");
 
 describe('utils', function(){
     describe('#normalizeUuid', function() {
@@ -24,16 +24,16 @@ describe('utils', function(){
     describe('#parseMainUrl', function() {
         it('should parse valid main url correctly', function() {
             const data = [
-                ["/main-CCEBE604-9E4E-4185-9A93-EDDD247001B0/", 
+                ["/main-", "/main-CCEBE604-9E4E-4185-9A93-EDDD247001B0/", 
                     ["ccebe604-9e4e-4185-9a93-eddd247001b0", "/"]], 
-                ["/main-ccebe604-9e4e-4185-9a93-eddd247001b0", 
+                ["/y-", "/y-ccebe604-9e4e-4185-9a93-eddd247001b0", 
                     ["ccebe604-9e4e-4185-9a93-eddd247001b0", ""]], 
-                ["/main-ccebe604-9e4e-4185-9a93-eddd247001b0?p=0", 
+                ["/main", "/mainccebe604-9e4e-4185-9a93-eddd247001b0?p=0", 
                     ["ccebe604-9e4e-4185-9a93-eddd247001b0", "?p=0"]]
             ];
             for (const testData of data) {
-                const [ url, expected ] = testData;
-                const actual = utils.parseMainUrl(url);
+                const [ prefix, url, expected ] = testData;
+                const actual = utils.parseMainUrl(prefix, url);
                 assert.deepEqual(actual, expected);
             }
         })

@@ -6,8 +6,9 @@ In general, serves as an HTTP reverse proxy together with [backend-local-forward
 
 ## Setup
 
-Launch with 
+Launch from [example](example) directory with 
 ```
+npm install
 npm start
 ```
 
@@ -20,7 +21,7 @@ See .env.sample for environment variables which can be used to configure the app
 
 ## Architecture
 
-![architecture diagram](architecture.png)
+![architecture diagram](images/architecture.png)
 
 
    1. remote client makes http request to running instance of backend-reverse-proxy on the Internet. reverse-proxy records http request and puts remote client on hold, waiting for local-forward-proxy to pick it up for processing.

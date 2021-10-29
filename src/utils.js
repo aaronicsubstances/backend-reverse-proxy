@@ -17,11 +17,11 @@ function normalizeUuid(str) {
     return id;
 }
 
-function parseMainUrl(url) {
-    if (!url.startsWith("/main-")) {
-        throw new Error("url doesn't start with 'main-'");
+function parseMainUrl(prefix, url) {
+    if (!url.startsWith(prefix)) {
+        throw new Error(`url doesn't start with '${prefix}'`);
     }
-    const mainSegEndIdx = "/main-".length;
+    const mainSegEndIdx = prefix.length;
     let thirdSlashIdx = url.indexOf('/', mainSegEndIdx);
     if (thirdSlashIdx === -1) {
         thirdSlashIdx = url.indexOf('?', mainSegEndIdx);

@@ -2,9 +2,13 @@
   "name": "backend-reverse-proxy",
   "version": "1.0.0",
   "description": "reverse proxy for localhost endpoints",
-  "main": "index.js",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "test",
+    "images"
+  ],
   "scripts": {
-    "start": "node index.js",
     "test": "mocha"
   },
   "repository": {
@@ -24,9 +28,7 @@
   },
   "homepage": "https://github.com/aaronicsubstances/backend-reverse-proxy#readme",
   "dependencies": {
-    "dotenv": "^8.2.0",
-    "express": "^4.17.1",
-    "socket.io": "^4.3.1",
+    "npmlog": "^5.0.1",
     "socket.io-stream": "^0.9.1",
     "uuid": "^8.3.2"
   },
