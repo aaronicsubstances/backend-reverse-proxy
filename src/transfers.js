@@ -7,6 +7,16 @@ const allPendingTransfers = new Map();
 // use this to ensure ids are not reused in between process restarts.
 const transferIdPrefix = new Date().toISOString().replace(/[.:\-]/g, '');
 
+let _requestTimeoutMillis;
+let _pollWaitTimeMillis;
+let _pickUpConfirmationTimeoutMillis;
+
+function setup(requestTimeoutMillis, pollWaitTimeMillis, pickUpConfirmationTimeout) {
+    _requestTimeoutMillis = requestTimeoutMillis;
+    _pollWaitTimeMillis = pollWaitTimeMillis;
+    _pickUpConfirmationTimeoutMillis = pickUpConfirmationTimeout;
+}
+
 function scheduleTransfer(req, res, backendId, targetUrl) {
     const clientIpAddress = utils.getClientIpAddress(req);
     const pendingTransfer = {
@@ -38,7 +48,7 @@ function scheduleTransfer(req, res, backendId, targetUrl) {
     backendTransfers.queue.push(pendingTransfer);
     pendingTransfer.timeout = setTimeout(() => {
         _endPendingTransfer(backendId, pendingTransfer, { timeout: true });
-    }, utils.getRequestTimeoutMillis());
+    }, _requestTimeoutMillis);
     
     logger.info(`[${pendingTransfer.clientIpAddress}] ${pendingTransfer.id}. ${req.method} ${backendId}${targetUrl} - scheduled`);
 
@@ -50,6 +60,10 @@ function scheduleTransfer(req, res, backendId, targetUrl) {
 
 function beginRequestTransfer(remoteWorkerAddress, backendId, resCb,
         requestErrCb) {
+    if (typeof backendId !== "string") {
+        resCb(null, {});
+        return;
+    }
     let backendTransfers;
     if (allPendingTransfers.has(backendId)) {
         backendTransfers = allPendingTransfers.get(backendId);
@@ -85,7 +99,7 @@ function beginRequestTransfer(remoteWorkerAddress, backendId, resCb,
             logger.debug(`[${remoteWorker.address}] remote worker exiting without any pending transfer on ${backendId}`);
             remoteWorker.resCb(null, {});
             _endRemoteWork(backendId, remoteWorker);
-        }, utils.getPollWaitTimeMillis());
+        }, _pollWaitTimeMillis);
     }
 }
 
@@ -267,7 +281,7 @@ function _beginRemoteWorkOnPendingTransfer(backendId, pendingTransfer, remoteWor
         logger.warn(`transfer of request headers for ${pendingTransfer.id} not confirmed`,
             `after ${waitTime} ms. Reverting to scheduled state.`);
         pendingTransfer.state = 0;
-    }, utils.getPickUpConfirmationTimeoutMillis());
+    }, _pickUpConfirmationTimeoutMillis);
 
     _endRemoteWork(backendId, remoteWorker);
 }
@@ -381,5 +395,6 @@ module.exports = {
     endRequestTransfer,
     beginReceiveResponse,
     endReceiveResponse,
-    failTransfer
+    failTransfer,
+    setup
 };

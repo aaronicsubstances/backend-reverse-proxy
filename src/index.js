@@ -1,5 +1,6 @@
 const ss = require("socket.io-stream");
 
+const logger = require("./logger");
 const transfers = require("./transfers");
 const utils = require("./utils");
 
@@ -137,5 +138,7 @@ function configureSocketIoStream(client, remoteWorkerAddress, reqHeadersPrefix,
 
 module.exports = {
     configureExpress,
-    configureSocketIoStream
+    configureSocketIoStream,
+    setupLogger: logger.setLoggerOptions,
+    setupTransfers: transfers.setup
 };

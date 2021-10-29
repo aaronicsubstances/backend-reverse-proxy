@@ -32,10 +32,10 @@ See .env.sample for environment variables which can be used to configure the app
 
    4. target localhost service responds to local-forward-proxy with http response headers and body.
  
-   5. local-forward-proxy makes normal http request to reverse-proxy, and transfers received response headers and body to it.
+   5. local-forward-proxy makes normal http request to reverse-proxy, and transfers received response headers and body to it (or transfers through web socket connection).
 
    6. reverse-proxy wakes up remote client and transfers received response headers and body to it as its final response.
 
-Remote clients make http request to backend-reverse-proxy deployments at paths with prefix/base of the form **/main/\[target_app_id\]**, where *target_app_id* is a uuid/guid configured at a running backend-local-forward-proxy instance to map to a given target app base url.
+Remote clients make http request to backend-reverse-proxy deployments at paths with prefix/base of the form **/main-\[target_app_id\]**, where *target_app_id* is a uuid/guid configured at a running backend-local-forward-proxy instance to map to a given target app base url.
 
 By this arrangement, a single online remote proxy deployment can serve multiple localhost proxies, as long as each localhost proxy is careful to use a different set of uuids/guids.

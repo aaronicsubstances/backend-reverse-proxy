@@ -1,8 +1,15 @@
 const npmlog = require("npmlog");
-const { LogLevels } = require("npmlog");
+
+let _enableVerboseLogs;
+let _omitLogTimestamps;
+
+function setLoggerOptions(enableVerboseLogs, omitLogTimestamps) {
+    _enableVerboseLogs = enableVerboseLogs;
+    _omitLogTimestamps = omitLogTimestamps;
+}
 
 function debug(message, ...args) {
-    if (process.env.DEBUG) {
+    if (_enableVerboseLogs) {
         _log('debug', message, args);
     }
 }
@@ -20,10 +27,10 @@ function error(message, ...args) {
 }
 
 function _log(level, message, args) {
-  const prefix = process.env.OMIT_LOG_TIMESTAMP ? "" : new Date().toISOString();
+  const prefix = _omitLogTimestamps ? "" : new Date().toISOString();
   npmlog.log(level, prefix, message, ...args);
 };
 
 module.exports = {
-  debug, info, warn, error
+  debug, info, warn, error, setLoggerOptions
 };
