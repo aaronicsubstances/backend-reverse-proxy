@@ -39,3 +39,39 @@ See .env.sample for environment variables which can be used to configure the app
 Remote clients make http request to backend-reverse-proxy deployments at paths with prefix/base of the form **/main-\[target_app_id\]**, where *target_app_id* is a uuid/guid configured at a running backend-local-forward-proxy instance to map to a given target app base url.
 
 By this arrangement, a single online remote proxy deployment can serve multiple localhost proxies, as long as each localhost proxy is careful to use a different set of uuids/guids.
+
+## API
+
+Adapt the code from [example](example) as needed. The methods provided by this library are:
+
+```js
+setupTransfers(
+    requestTimeoutMillis: number,
+    pollWaitTimeMillis: number,
+    pickUpConfirmationTimeoutMillis: number): void;
+
+setupLogger(
+    enableVerboseLogs: boolean,
+    omitTimestampInLogs: boolean): void;
+
+configureExpress(
+    expressApp: any,
+    jsonMiddlewareParser: any,
+    generalPrefix: string, // can be empty if not needed
+    reqHeadersPrefix: string,
+    reqBodyPrefix: string,
+    resHeadersPrefix: string,
+    resBodyPrefix: string,
+    transferErrorPrefix: string
+): void;
+
+configureSocketIoStream(
+    client: any // must be socket.io connection received by server,
+    remoteWorkerAddress: string, // can be empty if unknown
+    reqHeadersPrefix: string,
+    reqBodyPrefix: string,
+    resHeadersPrefix: string,
+    resBodyPrefix: string,
+    transferErrorPrefix: string
+): void;
+```

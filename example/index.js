@@ -23,7 +23,11 @@ configureExpress(app, jsonParser, generalPrefix, reqHeadersPrefix,
     transferErrorPrefix);
 
 io.on('connection', (client) => {
-    const remoteWorkerAddress = client.request.connection.remoteAddress;
+    let remoteWorkerAddress = "";
+    try {
+        remoteWorkerAddress = client.request.connection.remoteAddress;
+    }
+    catch (ignore) {}
     console.log(`[${remoteWorkerAddress}]`, "connected");
     client.on("disconnect", (reason) => {
         console.log(`[${remoteWorkerAddress}]`, "disconnected due to", reason);
